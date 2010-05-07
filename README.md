@@ -20,6 +20,8 @@ recommend these sources:
 * [Fundamentals of Computational Swarm Intelligence - Engelbrecht](http://si.cs.up.ac.za/)
 * [A novel numerical optimization algorithm inspired from weed
 colonization - Mehrabiana et al. (paper)](http://dx.doi.org/10.1016/j.ecoinf.2006.07.003)
+* or the wondeful, free book from Sean Luke:
+  [Essentials of Metaheuristics](http://cs.gmu.edu/~sean/book/metaheuristics/)
 
 ## Usage
 
