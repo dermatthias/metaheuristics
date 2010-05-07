@@ -1,0 +1,18 @@
+# Metaheuristics for Clojure
+
+Metaheuristics for Clojure is a Clojure library for common metaheuristic algorithms. 
+
+## Usage
+
+At the moment, there are only two (PSO and IWO) algorithms implemented. They live in the namespace 'metaheuristics.pso' and '.iwo' respectively. There is only one public function to call for each variant. 
+
+## Installation
+* If you want to work with the source:
+  It's a [Leiningen](http://github.com/technomancy/leiningen) project. From here on I think you know what to do. 
+
+* If you just want to use the library in your own project:
+  Use the Leiningen (see above) to compile a .jar and put it to the path of your own project.
+
+## License
+
+Creative Commons - BY-NC-SA
