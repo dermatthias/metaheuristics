@@ -136,13 +136,19 @@
   )
 
 (defn pso
-  "Starts the PSO. 
-  fitness defines the fitness function used in the PSO. The only argument is the position of the particle (a double-vector). 
-  max defines the maximum value of one dimension (intervall [0, max])
+  "Starts the PSO algorithm.
+  Parameter: 
+  fitness - defines the fitness function used in the PSO. The only argument is the position of the particle (a double-vector).
+  dim - number of dimensions in solution.
+  nparticles - number of particles in swarm.
+  vc-init - initial value for velocity clamping (usually 1.0)
+  vc-hist - number of history value for velocity clamping (usually 0.8 * max-iterations).
+  max-iterations - maximum number of iterations.
+  max-feat - maximum value for one feature.
   "
-  [fitness dim nparticles iterations vc-init vc-hist max]
-  (let [swarm (init-swarm nparticles dim vc-init vc-hist max)]
-    (dorun (map (fn [i] (fly fitness swarm i)) (range iterations)))
+  [fitness dim nparticles vc-init vc-hist max-iterations max-feat]
+  (let [swarm (init-swarm nparticles dim vc-init vc-hist max-feat)]
+    (dorun (map (fn [i] (fly fitness swarm i)) (range max-iterations)))
     @(:gbest swarm)))
 
 
