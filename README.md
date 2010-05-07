@@ -7,6 +7,7 @@ multi-core machines. It was tested on a *dual* 4-core Intel Xeon
 (W5580), where it ran 6.3 times faster than on a single core machine.
 
 These algorithms are implemented at the moment:
+
 * Particle Swarm Optimization (PSO), including some extensions (velocity clamping, inertia weights, multi-start resetting)
 * Genetic Algorithm (GA)
 * Evolution Strategies (ES)
