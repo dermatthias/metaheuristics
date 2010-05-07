@@ -1,6 +1,6 @@
 (ns metaheuristics.pso
   (:use [clojure.contrib.math])
-  (:use test))
+  (:use testfunctions))
 
 (defn- scramble
   [l]

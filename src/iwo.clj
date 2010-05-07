@@ -1,7 +1,7 @@
 (ns metaheuristics.iwo
   (:use [clojure.set :only (intersection difference)])
   (:use [clojure.contrib.math])
-  (:use test))
+  (:use testfunctions))
 
 ;; rand from normal distribution
 (defn- normal [mu sigma]

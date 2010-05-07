@@ -1,4 +1,4 @@
-(ns test)
+(ns testfunctions)
 (defn rastrigin [position]
   (let [sumvec (amap position i ret
 	(+ (- (Math/pow (aget position i) 2)
