@@ -4,7 +4,7 @@ Metaheuristics for Clojure is a Clojure library for common metaheuristic algorit
 
 ## Usage
 
-At the moment, there are only two (PSO and IWO) algorithms implemented. They live in the namespace 'metaheuristics.pso' and '.iwo' respectively. There is only one public function to call for each variant, (iwo & params) and (pso & params). They both return a struct with the global best solution. The fitness value and the position ca be accessed by (:position gbest) and/or (:fitness gbest). 
+At the moment, there are only three (PSO, IWO and ES) algorithms implemented. They live in the namespace 'metaheuristics.pso', '.iwo' and '.es' respectively. There is only one public function to call for each variant, (iwo & params), (pso & params) and (es & params). They return a struct with the global best solution. The fitness value and the position ca be accessed by (:position gbest) and/or (:fitness gbest). 
 
 ## Known issues and limitations
 For now, the functions can only handle real value solutions. Binary, decimal and permutations will be added later. 
