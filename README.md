@@ -1,6 +1,6 @@
 # Metaheuristics for Clojure
 
-Metaheuristics for Clojure is a Clojure library for common metaheuristic algorithms. 
+Metaheuristics for Clojure is a Clojure library for common metaheuristic algorithms. It uses Agents to parallel compute the fitness functions, so there will be a distinct speedup on multi-core machines. It's tested on a *dual* 4-core Intel Xeon (W5580), where it ran 6.3 times faster than on a single core.
 
 ## Usage
 
