@@ -1,4 +1,4 @@
-(ns es
+(ns metaheuristics.es
   (:use [clojure.set :only (intersection difference)])
   (:use [clojure.contrib.math])
   (:use test))
@@ -21,20 +21,12 @@
   (let [items (java.util.ArrayList. l)]
 	scramble (do (java.util.Collections/shuffle items) (seq items))))
 
-(defn now []
-  (java.sql.Timestamp. (.getTime (java.util.Date.))))
-(defn timestamp []
-  (.getTime (java.util.Date.)))
-
-(defn rand-int [max number]
-  (map (fn [_] (* max (rand))) (range number)))
-;(rand-int 10 1)
-
 ;; rand from normal distribution
 (defn normal [mu sigma]
   (let [r (new java.util.Random)]
     (+ mu (* sigma (.nextGaussian r)))))
-
+(defn esrand-int [max number]
+  (map (fn [_] (* max (rand))) (range number)))
 
 ; genetic algorithm
 ; -----------------
@@ -45,7 +37,7 @@
   "Generiert ein zufälliges Chromosom der Länge n mit je 'bits' Bits pro Gen."
   [n bits]
   (let [max (int (- (Math/pow 2 bits) 1))]
-    (double-array (rand-int max n))))
+    (double-array (esrand-int max n))))
 ;(generate-chromosome 22 8)
 
 (defn init-individual
@@ -64,37 +56,27 @@
 
 (defn chromo-to-phenotype
   "Wandelt das Chromosom in seine Phenotyprepräsentation um. Genotyp: Werte zwischen 0 und 2^bits-1. Phenotyp die entsprechend normalisierten Werte zwischen 0 und 1, in der Summe gleich 1. Die 18 Genres werden zuvor einem Multiplikator reduziert."
-  [chromosome gfactor]
-  (let [genre-reduced (amap chromosome i ret
-		     (if (> i 3)
-		       (* gfactor (aget chromosome i))
-		       (aget chromosome i)))
-	sum (areduce genre-reduced i ret 0
-		     (+ ret (aget genre-reduced i)))]
-    (amap genre-reduced i ret
-	  (/ (aget genre-reduced i) sum))))
+  [chromosome]
+  (let [sum (areduce chromosome i ret 0
+		     (+ ret (aget chromosome i)))]
+    (amap chromosome i ret
+	  (/ (aget chromosome i) sum))))
 ;(chromo-to-phenotype (generate-chromosome 22 8) 0.2)
 
 (defn evaluate-individual
   "Evaluiert ein übergebenes Individuum. Hier geschieht die eigentliche Arbeit, die Funktionen generate-neighbourhood und fitness-score lässt den kompletten Recommender für das aktuelle Ind. durchlaufen."
-  [ind active others data gfactor]
-  (let [w-geno (:chromosome ind)
-	w-pheno (chromo-to-phenotype w-geno gfactor)
-
-	allusers (generate-neighbourhood active others w-pheno data)
-	mean (/ (reduce + (for [n allusers] (second n))) (- (:users data-info) 1))
-	;;upperhalf (+ mean (/ (- (second (first allusers)) mean) 2.0))
-	nhood (remove nil? (for [n allusers] (if (> (second n) mean) n)))
-	fitval (fitness-score active nhood (keys (data active)) data data)]
-    (assoc ind :chromosome w-geno :fitness (first fitval))))
+  [ind fitness]
+  (let [w-pheno (chromo-to-phenotype (:chromosome ind))
+	fitval (fitness w-pheno)]
+    (assoc ind :fitness fitval)))
 
 (defn evaluate-all
   "Evaluiert die neu erzeugten Kinder der Population, jeweils per Aufruf von evaluate-individual."
-  [active others popu data gfactor]
-    (println "Evaluating population...")
+  [popu fitness]
+    (if DEBUG? (println "Evaluating population..."))
   (let [agentlist (for [ind (:poplist popu) :when (= (:tag ind) 1)] (agent ind))]
 
-    (dorun (map #(send %1 evaluate-individual active others data gfactor) agentlist))
+    (dorun (map #(send %1 evaluate-individual fitness) agentlist))
     (apply await agentlist)
 
     (let [children (for [agent agentlist] @agent)
@@ -103,9 +85,9 @@
 
 (defn evaluate-all-firstrun
   "Evaluiert alle Individuen der Population, jeweils per Aufruf von evaluate-individual"
-  [active others popu data gfactor]
+  [popu fitness]
   (let [agentlist (for [ind (:poplist popu)] (agent ind))]
-    (dorun (map #(send %1 evaluate-individual active others data gfactor) agentlist))
+    (dorun (map #(send %1 evaluate-individual fitness) agentlist))
     (apply await agentlist)
     (assoc popu :poplist (for [agent agentlist] @agent))))
 
@@ -170,21 +152,22 @@
 (defn generate-offspring
   "Ruft do-offspring mit der aktuellen Population so oft auf, bis alle Elternpaare abgearbeitet sind. Liefert die komplette Population (Kinder und Eltern) zurück."
   [acc parents]
-  (println "Generating Offspring...")
+  (if DEBUG? (println "Generating Offspring..."))
   (reduce do-offspring acc parents))
 
 (defn survivor-selection
   "Bestimmt, welche Individuen in die nächste Generation übernommen werden. 
    Nur die besten Nachkommen werden für die neue Generation selektiert, entspricht der typischen ES Strategie."
   [popu popsize]
-  (println "Survivor Selection...")
-  (let [survivors (take popsize (sort-by :fitness < (for [i (:poplist popu) :when (= (:tag i) 1)] i)))]
+  (if DEBUG? (println "Survivor Selection..."))
+  (let [survivors (take popsize (sort-by :fitness < 
+					 (for [i (:poplist popu) :when (= (:tag i) 1)] i)))]
     (assoc popu :poplist survivors)))
 
 (defn parent-selection
   "Erstellt popsize*factor viele Elternpaare. Die Fitness spielt keine Rolle, die Eltern werden zufällig gezogen."
   [popu popsize factor]
-  (println "Parent Selection...")
+  (if DEBUG? (println "Parent Selection..."))
   (let [parents (scramble (take (* factor popsize) (cycle (:poplist popu))))
 	splitted (split-at (* (/ factor 2) popsize) parents)]
     (map #(list %1 %2) (nth splitted 0) (nth splitted 1))))
@@ -192,28 +175,34 @@
 ;(count (parent-selection foo 0.4 10))
 
 (defn es
-  "Startet den GA mit einer Population von popsize und x-vielen Runs."
-  [active others data gaargs filename]
-  (println "esrec started." gaargs (timestamp) "\n First evaluation...")
-  (let [popsize (nth gaargs 0)
-	gfactor (nth gaargs 1)
-	offspFactor (nth gaargs 2)
-	iterations (last gaargs)
-	popu (init-population popsize 22 8)
-	popu-evaluated (evaluate-all-firstrun active others popu data gfactor)]
+  "Starts the ES algorithm.
+  Parameter: 
+  fitness - defines the fitness function used. The only argument is the position of the particle (a double-vector).
+  dim - number of dimensions in solution.
+  popsize - size of the population.
+  offsp-factor - factor for the number of offspring created (usually 2).
+  max-iterations - maximum number of iterations.
+  "
+  [fitness dim popsize offsp-factor max-iterations]
+  (let [popu (init-population popsize dim 8)
+	popu-evaluated (evaluate-all-firstrun popu fitness)]
 
-    (loop [runs iterations popu popu-evaluated]
-      (println "best in generation:" (:fitness (first (sort-by :fitness < (:poplist popu)))))
+    (loop [runs max-iterations popu popu-evaluated]
+      (if DEBUG? (println "best in generation:" 
+			  (:fitness (first (sort-by :fitness < (:poplist popu))))))
       (if (zero? runs)
-	(:chromosome (first (sort-by :fitness < (:poplist popu))))
-	(let [parents (parent-selection popu popsize offspFactor)
+	(first (sort-by :fitness < (:poplist popu)))
+	(let [parents (parent-selection popu popsize offsp-factor)
 	      popu-with-children (generate-offspring popu parents)
-	      popu-eva (evaluate-all active others popu-with-children data gfactor)
+	      popu-eva (evaluate-all popu-with-children fitness)
 	      popu-surv (survivor-selection popu-eva popsize)
-	      ;setze alle survivor auf :tag 0
 	      new-pop (assoc popu-surv :poplist
 			     (for [i (:poplist popu-surv)] (assoc i :tag 0)))]
-	  (do (println "no. parent pairs:" (count parents))
-	      (println "no. parents + children:" (count (:poplist popu-with-children)))
-	      (println "no. survivors: " (count (:poplist popu-surv))))
+	  (if DEBUG? (do (println "no. parent pairs:" (count parents))
+			 (println "no. parents + children:" (count (:poplist popu-with-children)))
+			 (println "no. survivors: " (count (:poplist popu-surv)))))
 	  (recur (dec runs) new-pop))))))
+
+(def DEBUG? false)
+
+;; (es griewank 10 30 2 100)
