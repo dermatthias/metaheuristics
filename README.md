@@ -15,8 +15,7 @@ These algorithms are implemented at the moment:
 For more information about these algorithms and techniques, I
 recommend these sources:
 
-* [Introduction to Evolutionary Computing - Eiben/Smith]
-  (http://www.cs.vu.nl/~gusz/ecbook/ecbook.html)
+* [Introduction to Evolutionary Computing - Eiben/Smith](http://www.cs.vu.nl/~gusz/ecbook/ecbook.html)
 * [Fundamentals of Computational Swarm Intelligence - Engelbrecht](http://si.cs.up.ac.za/)
 * [A novel numerical optimization algorithm inspired from weed
 colonization - Mehrabiana et al. (paper)](http://dx.doi.org/10.1016/j.ecoinf.2006.07.003)
