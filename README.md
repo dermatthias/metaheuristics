@@ -15,15 +15,12 @@ These algorithms are implemented at the moment:
 For more information about these algorithms and techniques, I
 recommend these sources:
 
-* Introduction to Evolutionary Computing - Eiben/Smith
-  (http://www.cs.vu.nl/~gusz/ecbook/ecbook.html)   
-* Fundamentals of Computational Swarm Intelligence - Engelbrecht
-  (http://si.cs.up.ac.za/)
-* A novel numerical optimization algorithm inspired from weed
-colonization - Mehrabiana et al. (paper)
-  (http://dx.doi.org/10.1016/j.ecoinf.2006.07.003)
-  
-  
+* [Introduction to Evolutionary Computing - Eiben/Smith]
+  (http://www.cs.vu.nl/~gusz/ecbook/ecbook.html)
+* [Fundamentals of Computational Swarm Intelligence - Engelbrecht](http://si.cs.up.ac.za/)
+* [A novel numerical optimization algorithm inspired from weed
+colonization - Mehrabiana et al. (paper)](http://dx.doi.org/10.1016/j.ecoinf.2006.07.003)
+
 ## Usage
 
 The algorithms live in the namespace 'metaheuristics.*', where *
@@ -39,10 +36,9 @@ For now, the functions can only handle real value solutions. Binary,
 decimal and permutations will be added later.
 
 Also, I am by no means a Clojure expert. Bugs, bad design...it's
-possible that you will find all of that in my code. If not, phew,
-lucky me.
+possible that you will find all of that in my code. If not, phew!! :)
 
-## Installation 
+## Installation
 
 * If you want to work with the source: It's a
   [Leiningen](http://github.com/technomancy/leiningen) project. From
