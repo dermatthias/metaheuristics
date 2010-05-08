@@ -1,7 +1,7 @@
 (ns metaheuristics.iwo
   (:use [clojure.set :only (intersection difference)])
   (:use [clojure.contrib.math])
-  (:use testfunctions))
+  (:use metaheuristics.testfunctions))
 
 ;; rand from normal distribution
 (defn- normal [mu sigma]
@@ -27,9 +27,9 @@
 	gworst (init-plant nDimensions max)]
     (agent (struct population plants gbest gworst (int nSeedMin) (int nSeedMax) sigmaInit sigmaFinal))))
 
-(defn- set-bestworst [population]
+(defn- set-bestworst [population ftype]
   (let [plants (for [p (:plantlist population)] @p)
-	sorted (sort-by :pfit < plants)]
+	sorted (sort-by :pfit ftype plants)]
     (assoc population :gbest (agent (first sorted)) :gworst (agent (last sorted)))))
 
 ;; eval seeds
@@ -45,7 +45,8 @@
 
 ;; create new seeds
 (defn- create-new-seed [pos sigma]
-  (let [pos-offset (double-array (map (fn [_] (normal 0 sigma)) (range 22)))
+  (let [dim (count pos)
+	pos-offset (double-array (map (fn [_] (normal 0 sigma)) (range dim)))
 	newpos (amap pos i ret
 		     (+ (aget pos i) (aget pos-offset i)))]
     (agent (struct plant (list) newpos 0.0))))
@@ -70,16 +71,16 @@
 	newSeeds (map (fn [_] (create-new-seed pos sigma)) (range nSeeds))]
     (assoc plant :seedlist newSeeds)))
 
-(defn- competition [population limit style]
+(defn- competition [population ftype limit style]
   (let [seeds (for [p (:plantlist population) s (:seedlist @p)] @s)
 	plants (for [p (:plantlist population)] @p)       
 	;; best up to limit
-	newpop (take limit (sort-by :pfit < (concat seeds plants)))
+	newpop (take limit (sort-by :pfit ftype (concat seeds plants)))
 	newagents (for [np newpop] (agent np))]
     (assoc population
       :plantlist newagents :gbest (agent (first newpop)) :gworst (agent (last newpop)))))
 
-(defn- grow [fitness population maxIt nPlantsMax modulation iteration]
+(defn- grow [fitness ftype population maxIt nPlantsMax modulation iteration]
   ;; generate new seeds for each plant-agent
   (if DEBUG? (println "creating new seeds..."))
   (dorun (map #(send % generate-seeds @population maxIt modulation iteration) 
@@ -94,7 +95,7 @@
 
   ;; competitive exclusion
   (if DEBUG? (println "competition..."))
-  (send population competition nPlantsMax 1)
+  (send population competition ftype nPlantsMax 1)
   (await population)
   (if DEBUG? (println "best in generation" iteration":" (:pfit @(:gbest @population)) "\n---"))
   )
@@ -103,6 +104,7 @@
   "Starts the IWO algorithm. Algorithm based on http://dx.doi.org/10.1016/j.ecoinf.2006.07.003
    Parameters:
    fitness - the fitness function to be used. only one parameter: the position of the particle (double-array).
+   ftype - defines the type of optimization problem (minimize (<) or maximize (>)).
    dim - number of dimensions in solution.
    nplants - number of initial plants.
    nplants-max - maximum number of plants in population.
@@ -113,16 +115,17 @@
    modulation -  modulation index (usually 3). 
    max-iterations - maximum number of iterations.
    max-feat - maximum value for one feature.
-   "
-  [fitness dim nplants nplants-max seed-min seed-max sigma-init sigma-final modulation max-iterations max-feat]
+   " 
+  [fitness ftype dim nplants nplants-max seed-min seed-max
+   sigma-init sigma-final modulation max-iterations max-feat]
   (let [population (init-population nplants dim seed-min seed-max sigma-init sigma-final max-feat)]
-    ; one time eval of initial plants
+0    ; one time eval of initial plants
     (dorun (map #(send % eval-seed fitness) (:plantlist @population)))
     (apply await (:plantlist @population))
-    (send population set-bestworst)
+    (send population set-bestworst ftype)
     (await population)
     ; start IWO
-    (dorun (map (fn [i] (grow fitness population max-iterations nplants-max modulation i))
+    (dorun (map (fn [i] (grow fitness ftype population max-iterations nplants-max modulation i))
 		(range max-iterations)))
     ; return best solution
     @(:gbest @population)))
@@ -130,4 +133,4 @@
 (def DEBUG? false)
 
 ;; testing
-;; (seq (:position (iwo griewank 10 10 30 0 5 10 0.1 3 100 10.0)))
+;; (seq (:position (iwo griewank < 100 10 30 0 5 10 0.1 3 100 10.0)))

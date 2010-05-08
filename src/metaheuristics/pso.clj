@@ -1,6 +1,6 @@
 (ns metaheuristics.pso
   (:use [clojure.contrib.math])
-  (:use testfunctions))
+  (:use metaheuristics.testfunctions))
 
 (defn- scramble
   [l]
@@ -21,7 +21,7 @@
 (defn- init-swarm [nParticles nDimensions vmaxDelta nHistoryFitness max]
   (let [particles (map (fn [_] (init-particle nDimensions max)) (range nParticles))
 	best (init-particle nDimensions max)
-	vmax (agent (double-array (repeat 22 (* vmaxDelta max))))
+	vmax (agent (double-array (repeat nDimensions (* vmaxDelta max))))
 	hfit (agent (double-array (replicate nHistoryFitness Double/MAX_VALUE)))]
     (struct swarm particles best vmax hfit)))
 
@@ -30,7 +30,7 @@
   (double (+ 0.5 (/ (rand) 2.0))))
 
 (defn- update-particle
-  [particle fitness gbest vmaxVec iteration]
+  [particle fitness ftype gbest vmaxVec iteration]
   (let [#^doubles pos (:position particle)
 	#^doubles vel (:velocity particle)
 	#^doubles pbestpos (:pbestpos particle)
@@ -64,14 +64,14 @@
 		     (+ (aget pos idx) (aget clampvel idx)))
 	; update pbest
 	fit (fitness newpos)
-	newpbestfit (if (< fit pbestfit) fit pbestfit)
-	newpbestpos (if (< fit pbestfit) newpos pbestpos)]
+	newpbestfit (if (ftype fit pbestfit) fit pbestfit)
+	newpbestpos (if (ftype fit pbestfit) newpos pbestpos)]
 	; finally assign updates to agent
     (assoc particle :position newpos :velocity newvel 
 	   :pbestpos newpbestpos :pbestfit newpbestfit)))
 
-(defn- update-gbest [gbest particles]
-  (let [newbest (first (sort-by :pbestfit < (map #(deref %) particles)))
+(defn- update-gbest [gbest ftype particles]
+  (let [newbest (first (sort-by :pbestfit ftype (map #(deref %) particles)))
 	#^doubles newpbestpos (:pbestpos newbest)
 	newpbestfit (double (:pbestfit newbest))]
     (assoc gbest :pbestpos newpbestpos :pbestfit newpbestfit)))
@@ -93,8 +93,8 @@
 	    (* beta (aget vmax i))
 	    (aget vmax i)))))
 
-(defn- reset-vmax [vmax vmaxDelta]
-  (double-array (repeat 22 (* vmaxDelta 255))))
+(defn- reset-vmax [vmax vmaxDelta max-feat]
+  (double-array (repeat (count vmax) (* vmaxDelta max-feat))))
 
 (defn- reset-particle [particle]
   (let [nDimensions (count (:position particle))
@@ -104,11 +104,11 @@
 	#^doubles newpbest (:pbestpos particle)]
     (assoc particle :position newpos :velocity newvel :pbestpos newpbest)))
 
-(defn- fly [fitness swarm iteration]
+(defn- fly [fitness ftype swarm iteration max-feat]
   ;;reset x random particles every 4 iteration  
   ;; (if (= (rem iteration 25) 0)
   ;;   (do
-  ;;     (send (:vmax swarm) reset-vmax 1.0)
+  ;;     (send (:vmax swarm) reset-vmax 1.0 max-feat)
   ;;     (await (:vmax swarm))
   ;;     (let [plist (map #(nth (:particlelist swarm) %)
   ;; 		       (take 15 (scramble (range 0 (count (:particlelist swarm))))))]
@@ -116,12 +116,12 @@
   ;; 	(apply await plist))))
 
   ; update particles
-  (dorun (map #(send % update-particle fitness (:gbest swarm) (:vmax swarm) iteration)
+  (dorun (map #(send % update-particle fitness ftype (:gbest swarm) (:vmax swarm) iteration)
 	      (:particlelist swarm)))
   (apply await (:particlelist swarm))
 
   ; update gbest
-  (send (:gbest swarm) update-gbest (:particlelist swarm))
+  (send (:gbest swarm) update-gbest ftype (:particlelist swarm))
   (await (:gbest swarm))
   (print (:pbestfit @(:gbest swarm)) " ")
 
@@ -138,7 +138,8 @@
 (defn pso
   "Starts the PSO algorithm.
   Parameter: 
-  fitness - defines the fitness function used in the PSO. The only argument is the position of the particle (a double-vector).
+  fitness - defines the fitness function used in the PSO. The only argument is the position of the particle (a double-vector)
+  ftype - defines the type of optimization problem (minimize (<) or maximize (>)).
   dim - number of dimensions in solution.
   nparticles - number of particles in swarm.
   vc-init - initial value for velocity clamping (usually 1.0)
@@ -146,11 +147,11 @@
   max-iterations - maximum number of iterations.
   max-feat - maximum value for one feature.
   "
-  [fitness dim nparticles vc-init vc-hist max-iterations max-feat]
+  [fitness ftype dim nparticles vc-init vc-hist max-iterations max-feat]
   (let [swarm (init-swarm nparticles dim vc-init vc-hist max-feat)]
-    (dorun (map (fn [i] (fly fitness swarm i)) (range max-iterations)))
+    (dorun (map (fn [i] (fly fitness ftype swarm i max-feat)) (range max-iterations)))
     @(:gbest swarm)))
 
 
-;; (pso griewank 10 30 10 1.0 (* 500 0.8) 10.0)
+;; (pso griewank < 10 30 10 1.0 (* 500 0.8) 10.0)
 

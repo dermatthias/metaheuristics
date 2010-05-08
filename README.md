@@ -29,8 +29,17 @@ The algorithms live in the namespace 'metaheuristics.*', where *
 stands for one of the abbreviations from above. There is only one
 public function to call for each variant (same abbrv.). They all
 return a struct with the global best solution. The fitness value and
-the position ca be accessed by (:position gbest) and/or (:fitness
-gbest). See the code for more information. It's not that complicated.
+the position ca be accessed by (:position gbest) (it's (:chromosome
+gbest) for the GA/ES) and (:fitness gbest). 
+
+The GA und ES return a genotype representation (think of it as an
+internal representation of the solution). You have to convert it to a
+phenotype representation with the (chromo-to-phenotype) function. E.g:
+
+*(chromo-to-phenotype (:chromosome gbest))*
+
+See the code for more
+information. It's not that complicated.
 
 ## Known issues and limitations
 
